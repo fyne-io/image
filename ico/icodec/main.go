@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/zyxar/image2ascii/ico"
+	"github.com/fyne-io/image/ico"
 	"golang.org/x/image/bmp"
 	"golang.org/x/image/tiff"
 )

@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/fyne-io/image/ico"
 	"github.com/stretchr/testify/assert"
-	"github.com/zyxar/image2ascii/ico"
 )
 
 func TestDecodeAll(t *testing.T) {
