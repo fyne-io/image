@@ -1,7 +1,6 @@
 package ico
 
 import (
-	"fmt"
 	"image"
 	"image/png"
 	"os"
@@ -18,14 +17,17 @@ func readPng(filename string) (image.Image, error) {
 }
 
 func TestWriter(t *testing.T) {
-	fn := "icondata.png"
+	fn := "testdata/icondata.png"
 	m0, err := readPng(fn)
 	if err != nil {
 		t.Error(fn, err)
 	}
-	icoimg, _ := os.Create("new.ico")
+	
+	icoimg, _ := os.Create("testdata/new.ico")
 	defer icoimg.Close()
-	icoerror := Encode(icoimg, m0)
-	fmt.Printf("icoerror: %s\n", icoerror)
-
+	
+	err = Encode(icoimg, m0)
+	if err != nil {
+		t.Error(err)
+	}
 }
