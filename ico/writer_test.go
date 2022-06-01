@@ -22,10 +22,10 @@ func TestWriter(t *testing.T) {
 	if err != nil {
 		t.Error(fn, err)
 	}
-	
+
 	icoimg, _ := os.Create("testdata/new.ico")
 	defer icoimg.Close()
-	
+
 	err = Encode(icoimg, m0)
 	if err != nil {
 		t.Error(err)
