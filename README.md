@@ -1,14 +1,13 @@
 # image
-Collection of image codecs useful in GUI apps
+
+Collection of image codecs useful in GUI apps.
 
 ## .ico
 
-golang support for windows .ico file format
-
-http://en.wikipedia.org/wiki/ICO_(file_format)
+Go support for the Windows [.ico](https://en.wikipedia.org/wiki/ICO_(file_format)) file format.
 
 This format is a combination of work from [image2ascii](https://github.com/zyxar/image2ascii)
-and [golang-image-ico](https://github.com/Kodeworks/golang-image-ico)
+and [golang-image-ico](https://github.com/Kodeworks/golang-image-ico).
 
 ### Reader
 
