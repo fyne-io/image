@@ -25,7 +25,10 @@ func parseXPM(data io.Reader) (image.Image, error) {
 		row = stripQuotes(row)
 
 		if rowNum == 0 {
-			w, h, cols, size := parseDimensions(row)
+			w, h, cols, size, err := parseDimensions(row)
+			if err != nil {
+				return nil, err
+			}
 			img = image.NewNRGBA(image.Rectangle{image.Point{}, image.Point{w, h}})
 			colCount = cols
 			charSize = size
@@ -63,7 +66,7 @@ func parseColor(data string, charSize int) (id string, c color.Color, err error)
 	return data[:charSize], color, err
 }
 
-func parseDimensions(data string) (w, h, i, j int) {
+func parseDimensions(data string) (w, h, i, j int, err error) {
 	if len(data) == 0 {
 		return
 	}
@@ -72,10 +75,10 @@ func parseDimensions(data string) (w, h, i, j int) {
 		return
 	}
 
-	w, _ = strconv.Atoi(parts[0])
-	h, _ = strconv.Atoi(parts[1])
-	i, _ = strconv.Atoi(parts[2])
-	j, _ = strconv.Atoi(parts[3])
+	w, err = strconv.Atoi(parts[0])
+	h, err = strconv.Atoi(parts[1])
+	i, err = strconv.Atoi(parts[2])
+	j, err = strconv.Atoi(parts[3])
 	return
 }
 

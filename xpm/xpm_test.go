@@ -51,7 +51,8 @@ func TestParseColor(t *testing.T) {
 }
 
 func TestParseDimensions(t *testing.T) {
-	w, h, i, j := parseDimensions("5 10 2 1")
+	w, h, i, j, err := parseDimensions("5 10 2 1")
+	assert.Nil(t, err)
 	assert.Equal(t, 5, w)
 	assert.Equal(t, 10, h)
 	assert.Equal(t, 2, i)
