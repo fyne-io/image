@@ -76,8 +76,17 @@ func parseDimensions(data string) (w, h, i, j int, err error) {
 	}
 
 	w, err = strconv.Atoi(parts[0])
+	if err != nil {
+		return
+	}
 	h, err = strconv.Atoi(parts[1])
+	if err != nil {
+		return
+	}
 	i, err = strconv.Atoi(parts[2])
+	if err != nil {
+		return
+	}
 	j, err = strconv.Atoi(parts[3])
 	return
 }
