@@ -4,7 +4,6 @@ import (
 	"image"
 	"image/color"
 	_ "image/png"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -14,9 +13,8 @@ import (
 func TestParse(t *testing.T) {
 	r, err := os.Open("testdata/blarg.xpm")
 	assert.Nil(t, err)
-	data, err := ioutil.ReadAll(r)
-	assert.Nil(t, err)
-	img := parseXPM(data)
+	defer r.Close()
+	img := parseXPM(r)
 	assert.Equal(t, 0, img.Bounds().Min.X)
 	assert.Equal(t, 0, img.Bounds().Min.Y)
 	assert.Equal(t, 16, img.Bounds().Max.X)

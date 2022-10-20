@@ -1,26 +1,24 @@
 package icon
 
 import (
+	"bufio"
 	"fmt"
 	"image"
 	"image/color"
+	"io"
 	"strconv"
 	"strings"
 )
 
-func parseXPM(data []byte) image.Image {
+func parseXPM(data io.Reader) image.Image {
 	var colCount, charSize int
 	colors := make(map[string]color.Color)
 	var img *image.NRGBA
 
-	rowStart := 0
 	rowNum := 0
-	for i, b := range data {
-		if b != '\n' {
-			continue
-		}
-		row := string(data[rowStart:i])
-		rowStart = i + 1
+	scan := bufio.NewScanner(data)
+	for scan.Scan() {
+		row := scan.Text()
 		if row == "" || row[0] != '"' {
 			continue
 		}
@@ -40,11 +38,6 @@ func parseXPM(data []byte) image.Image {
 			parsePixels(row, charSize, rowNum-colCount-1, colors, img)
 		}
 		rowNum++
-	}
-
-	row := string(data[rowStart:])
-	if row != "" && row[0] == '"' { // last row has pixels
-		parsePixels(stripQuotes(row), charSize, rowNum-colCount-1, colors, img)
 	}
 	return img
 }

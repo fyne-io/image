@@ -3,7 +3,6 @@ package icon
 import (
 	"image"
 	"io"
-	"io/ioutil"
 )
 
 func init() {
@@ -12,10 +11,5 @@ func init() {
 }
 
 func Decode(r io.Reader) (image.Image, error) {
-	data, err := ioutil.ReadAll(r)
-	if err != nil {
-		return nil, err
-	}
-
-	return parseXPM(data), nil
+	return parseXPM(r), nil
 }
