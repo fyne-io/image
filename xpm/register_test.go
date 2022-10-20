@@ -1,4 +1,4 @@
-package icon_test
+package xpm_test
 
 import (
 	"image"
