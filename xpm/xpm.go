@@ -60,7 +60,7 @@ func parseColor(data string, charSize int) (id string, c color.Color, err error)
 	}
 
 	color, err := stringToColor(parts[2])
-	return data[:charSize], color, nil
+	return data[:charSize], color, err
 }
 
 func parseDimensions(data string) (w, h, i, j int) {
