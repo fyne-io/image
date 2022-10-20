@@ -11,5 +11,5 @@ func init() {
 }
 
 func Decode(r io.Reader) (image.Image, error) {
-	return parseXPM(r), nil
+	return parseXPM(r)
 }

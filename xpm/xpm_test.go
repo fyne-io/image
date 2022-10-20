@@ -14,7 +14,8 @@ func TestParse(t *testing.T) {
 	r, err := os.Open("testdata/blarg.xpm")
 	assert.Nil(t, err)
 	defer r.Close()
-	img := parseXPM(r)
+	img, err := parseXPM(r)
+	assert.Nil(t, err)
 	assert.Equal(t, 0, img.Bounds().Min.X)
 	assert.Equal(t, 0, img.Bounds().Min.Y)
 	assert.Equal(t, 16, img.Bounds().Max.X)
@@ -38,11 +39,13 @@ func TestParse(t *testing.T) {
 }
 
 func TestParseColor(t *testing.T) {
-	id, c := parseColor(". c #000000", 1)
+	id, c, err := parseColor(". c #000000", 1)
+	assert.Nil(t, err)
 	assert.Equal(t, ".", id)
 	assert.Equal(t, &color.NRGBA{R: 0x0, G: 0x0, B: 0x0, A: 0xff}, c)
 
-	id, c = parseColor("  c #000000", 1) // special case, id is spaces
+	id, c, err = parseColor("  c #000000", 1) // special case, id is spaces
+	assert.Nil(t, err)
 	assert.Equal(t, " ", id)
 	assert.Equal(t, &color.NRGBA{R: 0x0, G: 0x0, B: 0x0, A: 0xff}, c)
 }
@@ -56,9 +59,15 @@ func TestParseDimensions(t *testing.T) {
 }
 
 func TestStringToColor(t *testing.T) {
-	assert.Equal(t, color.Transparent, stringToColor("None"))
-	assert.Equal(t, &color.NRGBA{A: 0xff}, stringToColor("#000000"))
-	assert.Equal(t, &color.NRGBA{0xff, 0xff, 0xff, 0xff}, stringToColor("#ffffff"))
+	c, err := stringToColor("None")
+	assert.Nil(t, err)
+	assert.Equal(t, color.Transparent, c)
+	c, err = stringToColor("#000000")
+	assert.Nil(t, err)
+	assert.Equal(t, &color.NRGBA{A: 0xff}, c)
+	c, err = stringToColor("#ffffff")
+	assert.Nil(t, err)
+	assert.Equal(t, &color.NRGBA{0xff, 0xff, 0xff, 0xff}, c)
 }
 
 func TestStripQuotes(t *testing.T) {

@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-func parseXPM(data io.Reader) image.Image {
+func parseXPM(data io.Reader) (image.Image, error) {
 	var colCount, charSize int
 	colors := make(map[string]color.Color)
 	var img *image.NRGBA
@@ -30,7 +30,11 @@ func parseXPM(data io.Reader) image.Image {
 			colCount = cols
 			charSize = size
 		} else if rowNum <= colCount {
-			id, c := parseColor(row, charSize)
+			id, c, err := parseColor(row, charSize)
+			if err != nil {
+				return nil, err
+			}
+
 			if id != "" {
 				colors[id] = c
 			}
@@ -39,10 +43,10 @@ func parseXPM(data io.Reader) image.Image {
 		}
 		rowNum++
 	}
-	return img
+	return img, scan.Err()
 }
 
-func parseColor(data string, charSize int) (id string, c color.Color) {
+func parseColor(data string, charSize int) (id string, c color.Color, err error) {
 	if len(data) == 0 {
 		return
 	}
@@ -55,7 +59,8 @@ func parseColor(data string, charSize int) (id string, c color.Color) {
 		return
 	}
 
-	return data[:charSize], stringToColor(parts[2])
+	color, err := stringToColor(parts[2])
+	return data[:charSize], color, nil
 }
 
 func parseDimensions(data string) (w, h, i, j int) {
@@ -94,18 +99,18 @@ func parsePixels(row string, charSize int, pixRow int, colors map[string]color.C
 	}
 }
 
-func stringToColor(data string) color.Color {
+func stringToColor(data string) (color.Color, error) {
 	if strings.EqualFold("none", data) {
-		return color.Transparent
+		return color.Transparent, nil
 	}
 
 	if data[0] != '#' {
-		return color.Transparent // unsupported string like colour name
+		return color.Transparent, nil // unsupported string like colour name
 	}
 
 	c := &color.NRGBA{A: 0xff}
-	_, _ = fmt.Sscanf(data, "#%02x%02x%02x", &c.R, &c.G, &c.B)
-	return c
+	_, err := fmt.Sscanf(data, "#%02x%02x%02x", &c.R, &c.G, &c.B)
+	return c, err
 }
 
 func stripQuotes(data string) string {
