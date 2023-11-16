@@ -148,6 +148,7 @@ func (d *decoder) decodeHeader(r io.Reader) error {
 	return nil
 }
 
+// ErrorNoEntries is returned when the decoded image contains no entries.
 var ErrorNoEntries = errors.New("no entries")
 
 func (d *decoder) decodeEntries(r io.Reader) error {
