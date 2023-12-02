@@ -3,6 +3,7 @@ package ico
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"image"
 	"image/color"
@@ -147,6 +148,9 @@ func (d *decoder) decodeHeader(r io.Reader) error {
 	return nil
 }
 
+// ErrorNoEntries is returned when the decoded image contains no entries.
+var ErrorNoEntries = errors.New("no entries")
+
 func (d *decoder) decodeEntries(r io.Reader) error {
 	n := int(d.head.Number)
 	d.entries = make([]direntry, n)
@@ -154,6 +158,9 @@ func (d *decoder) decodeEntries(r io.Reader) error {
 		if err := binary.Read(r, binary.LittleEndian, &(d.entries[i])); err != nil {
 			return err
 		}
+	}
+	if len(d.entries) < 1 {
+		return ErrorNoEntries
 	}
 	return nil
 }

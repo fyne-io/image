@@ -2,7 +2,7 @@ package ico_test
 
 import (
 	"fmt"
-	"image/jpeg"
+	"image/png"
 	"os"
 	"path/filepath"
 	"testing"
@@ -14,13 +14,20 @@ import (
 func TestDecodeAll(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
-	files, _ := filepath.Glob("testdata/favicons/*.ico")
+	files, _ := filepath.Glob("testdata/*.ico")
 	for _, f := range files {
+		t.Log("testing:", f)
 		rd, err := os.Open(f)
 		assert.NoError(err, f)
 		images, err := ico.DecodeAll(rd)
-		assert.NoError(err, f)
 		rd.Close()
+
+		// Specific Testfile with no images should error
+		if f == "testdata/DFONT.ico" {
+			assert.Error(err, ico.ErrorNoEntries)
+			continue
+		}
+		assert.NoError(err, f)
 		if err != nil {
 			continue
 		}
@@ -28,13 +35,13 @@ func TestDecodeAll(t *testing.T) {
 		for i := range images {
 			var dst string
 			if len(images) == 1 {
-				dst = f + ".jpg"
+				dst = f + ".png"
 			} else {
-				dst = f + fmt.Sprintf("-%d.jpg", i)
+				dst = f + fmt.Sprintf("-%d.png", i)
 			}
 			rd, err := os.Open(dst)
 			assert.NoError(err, dst)
-			dstImage, err := jpeg.Decode(rd)
+			dstImage, err := png.Decode(rd)
 			assert.NoError(err, dst)
 			rd.Close()
 			if err != nil {
