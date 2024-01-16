@@ -43,7 +43,10 @@ func parseXPM(data io.Reader) (image.Image, error) {
 				colors[id] = c
 			}
 		} else {
-			parsePixels(row, charSize, rowNum-colCount-1, colors, img)
+			err := parsePixels(row, charSize, rowNum-colCount-1, colors, img)
+			if err != nil {
+				return nil, err
+			}
 		}
 		rowNum++
 	}
@@ -134,7 +137,10 @@ func parseDimensions(data string) (w, h, ncolors, cpp int, err error) {
 	return
 }
 
-func parsePixels(row string, charSize int, pixRow int, colors map[string]color.Color, img *image.NRGBA) {
+func parsePixels(row string, charSize int, pixRow int, colors map[string]color.Color, img *image.NRGBA) error {
+	if len(row) < charSize*(img.Stride/4) {
+		return fmt.Errorf("invalid format: missing pixel data")
+	}
 	off := pixRow * img.Stride
 	chPos := 0
 	for i := 0; i < img.Stride/4; i++ {
@@ -152,6 +158,7 @@ func parsePixels(row string, charSize int, pixRow int, colors map[string]color.C
 		img.Pix[pos+3] = uint8(a)
 		chPos += charSize
 	}
+	return nil
 }
 
 func stringToColor(data string) (color.Color, error) {
