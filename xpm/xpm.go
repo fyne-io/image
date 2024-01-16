@@ -94,7 +94,7 @@ func nextKeyIndex(parts []string) int {
 	return len(parts)
 }
 
-func parseDimensions(data string) (w, h, i, j int, err error) {
+func parseDimensions(data string) (w, h, ncolors, cpp int, err error) {
 	if len(data) == 0 {
 		return
 	}
@@ -111,11 +111,26 @@ func parseDimensions(data string) (w, h, i, j int, err error) {
 	if err != nil {
 		return
 	}
-	i, err = strconv.Atoi(parts[2])
+	if w*h <= 0 {
+		err = fmt.Errorf("invalid format: empty or negative-sized image (%v x %v)", w, h)
+		return
+	}
+	ncolors, err = strconv.Atoi(parts[2])
 	if err != nil {
 		return
 	}
-	j, err = strconv.Atoi(parts[3])
+	if ncolors <= 0 {
+		err = fmt.Errorf("invalid format: ncolors <= 0: missing color palette")
+		return
+	}
+	cpp, err = strconv.Atoi(parts[3])
+	if err != nil {
+		return
+	}
+	if cpp <= 0 {
+		err = fmt.Errorf("invalid format: characters per pixel <= 0")
+		return
+	}
 	return
 }
 
