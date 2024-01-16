@@ -5,36 +5,60 @@ import (
 	"image/color"
 	_ "image/png"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestParse(t *testing.T) {
-	r, err := os.Open("testdata/blarg.xpm")
-	assert.Nil(t, err)
-	defer r.Close()
-	img, err := parseXPM(r)
-	assert.Nil(t, err)
-	assert.Equal(t, 0, img.Bounds().Min.X)
-	assert.Equal(t, 0, img.Bounds().Min.Y)
-	assert.Equal(t, 16, img.Bounds().Max.X)
-	assert.Equal(t, 7, img.Bounds().Max.Y)
-
-	r, err = os.Open("testdata/blarg.png")
+	matches, err := filepath.Glob("testdata/*.png")
 	if err != nil {
-		t.Error(err)
+		t.Fatalf("filepath.Glob: %v", err)
 	}
-
-	golden, _, err := image.Decode(r)
-	if err != nil {
-		t.Error(err)
+	if len(matches) == 0 {
+		t.Fatalf("Missing examples and golden files")
 	}
+	for _, pngName := range matches {
+		var (
+			pngName  = pngName
+			xpmName  = pngName[:len(pngName)-4] + ".xpm"
+			testName = filepath.Base(pngName[:len(pngName)-4])
+		)
+		t.Run(testName, func(t *testing.T) {
+			r, err := os.Open(xpmName)
+			if err != nil {
+				t.Fatalf("os.Open(%q): %v", xpmName, err)
+			}
+			defer r.Close()
 
-	pixCount := len(golden.(*image.RGBA).Pix)
-	assert.Equal(t, pixCount, len(img.(*image.NRGBA).Pix))
-	for i := 0; i < pixCount; i++ {
-		assert.Equal(t, golden.(*image.RGBA).Pix[i], img.(*image.NRGBA).Pix[i])
+			img, err := parseXPM(r)
+			assert.Nil(t, err)
+
+			r, err = os.Open(pngName)
+			if err != nil {
+				t.Fatalf("os.Open(%q): %v", pngName, err)
+			}
+			defer r.Close()
+
+			golden, _, err := image.Decode(r)
+			if err != nil {
+				t.Fatalf("image.Decode() for %q: %v", pngName, err)
+			}
+			assert.Equal(t, golden.Bounds(), img.Bounds())
+
+			b := golden.Bounds()
+			for x := b.Min.X; x < b.Max.X; x++ {
+				for y := b.Min.Y; y < b.Max.Y; y++ {
+					iR, iG, iB, iA := img.At(x, y).RGBA()
+					gR, gG, gB, gA := golden.At(x, y).RGBA()
+					assert.Equal(t, iR, gR, "red at (%v, %v)", x, y)
+					assert.Equal(t, iG, gG, "green at (%v, %v)", x, y)
+					assert.Equal(t, iB, gB, "blue at (%v, %v)", x, y)
+					assert.Equal(t, iA, gA, "alpha at (%v, %v)", x, y)
+				}
+			}
+		})
 	}
 }
 

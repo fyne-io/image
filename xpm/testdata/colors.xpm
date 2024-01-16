@@ -1,0 +1,28 @@
+/* XPM */
+static char * hexcolors_xpm[] = {
+/* width height ncolors chars_per_pixel */
+"15 17 5 1",
+/* colors */
+" 	s None	c None",
+".	c black	m black",
+"h	m white	c orange red",
+"@	c peach puff	m white",
+"#	c #FFF	m white",
+/* pixels */
+" .  .....      ",
+"  ..hhhhh.     ",
+"  .hhhh.hh.    ",
+"   ....@@h.    ",
+"   .@@@@@@.    ",
+"   .@.@@.@.    ",
+"   .@@@@@@..   ",
+"   .@.@@@@@@.  ",
+"   .@..@@@@.   ",
+"   .@@@@.@.    ",
+"   .....@@.    ",
+"    .@@@@@.    ",
+"    .@@@@@.    ",
+"  ..........   ",
+" ..###.####..  ",
+".#..........#. ",
+".#############."};
