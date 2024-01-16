@@ -10,6 +10,12 @@ import (
 	"strings"
 )
 
+// maxPixels is the maximum number of pixels that the parser supports,
+// to protect against prohibitively large memory allocations.  XPM
+// pixmaps tend to be small, it should not be possible to run into
+// this limit with real-life data.
+const maxPixels = 1024 * 1024 * 1024
+
 func parseXPM(data io.Reader) (image.Image, error) {
 	// Specification: https://www.xfree86.org/current/xpm.pdf
 	var colCount, charSize int
@@ -118,6 +124,10 @@ func parseDimensions(data string) (w, h, ncolors, cpp int, err error) {
 	}
 	if w*h <= 0 {
 		err = fmt.Errorf("invalid format: empty or negative-sized image (%v x %v)", w, h)
+		return
+	}
+	if w*h >= maxPixels {
+		err = fmt.Errorf("invalid format: too many pixels (%v x %v), want < %v", w, h, maxPixels)
 		return
 	}
 	ncolors, err = strconv.Atoi(parts[2])
