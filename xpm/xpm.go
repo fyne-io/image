@@ -154,6 +154,9 @@ func parsePixels(row string, charSize int, pixRow int, colors map[string]color.C
 		return fmt.Errorf("invalid format: missing pixel data")
 	}
 	off := pixRow * img.Stride
+	if len(img.Pix) < off+img.Stride {
+		return fmt.Errorf("invalid format: too much pixel data")
+	}
 	chPos := 0
 	for i := 0; i < img.Stride/4; i++ {
 		id := row[chPos : chPos+charSize]
