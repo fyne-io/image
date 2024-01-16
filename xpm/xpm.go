@@ -54,10 +54,8 @@ func parseXPM(data io.Reader) (image.Image, error) {
 }
 
 func parseColor(data string, charSize int) (id string, c color.Color, err error) {
-	// TODO: parseColor should return a non-nil err in all error cases,
-	// instead of just returning and implicitly leaving err as nil.
 	if len(data) < charSize {
-		return
+		return "", nil, fmt.Errorf("invalid format: missing color specification")
 	}
 
 	id = data[:charSize]
@@ -69,6 +67,10 @@ func parseColor(data string, charSize int) (id string, c color.Color, err error)
 		nki := nextKeyIndex(parts)
 		color := strings.Join(parts[:nki], " ")
 		parts = parts[nki:]
+
+		if color == "" {
+			return "", nil, fmt.Errorf("invalid format: missing color specification")
+		}
 
 		switch key {
 		case "c":
@@ -82,7 +84,7 @@ func parseColor(data string, charSize int) (id string, c color.Color, err error)
 			return "", nil, fmt.Errorf("unknown visual %q", key)
 		}
 	}
-	return
+	return "", nil, fmt.Errorf("invalid format: missing color specification")
 }
 
 // nextKeyIndex returns the index of the next "c", "m", s", "g4", or
