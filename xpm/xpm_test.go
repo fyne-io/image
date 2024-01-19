@@ -39,15 +39,58 @@ func TestParse(t *testing.T) {
 }
 
 func TestParseColor(t *testing.T) {
-	id, c, err := parseColor(". c #000000", 1)
-	assert.Nil(t, err)
-	assert.Equal(t, ".", id)
-	assert.Equal(t, &color.NRGBA{R: 0x0, G: 0x0, B: 0x0, A: 0xff}, c)
-
-	id, c, err = parseColor("  c #000000", 1) // special case, id is spaces
-	assert.Nil(t, err)
-	assert.Equal(t, " ", id)
-	assert.Equal(t, &color.NRGBA{R: 0x0, G: 0x0, B: 0x0, A: 0xff}, c)
+	// Syntax is: <chars> {<key> <color>}+ (XPM Manual Chapter 2)
+	for _, tt := range []struct {
+		input     string
+		wantID    string
+		wantColor color.Color
+	}{
+		{
+			input:     ". c #000000",
+			wantID:    ".",
+			wantColor: color.NRGBA{R: 0x0, G: 0x0, B: 0x0, A: 0xff},
+		},
+		{
+			input:     "  c #000000",
+			wantID:    " ", // special case, id is spaces
+			wantColor: color.NRGBA{R: 0x0, G: 0x0, B: 0x0, A: 0xff},
+		},
+		{
+			// three-digit hex color
+			input:     "O c #123",
+			wantID:    "O",
+			wantColor: color.NRGBA{R: 0x10, G: 0x20, B: 0x30, A: 0xff},
+		},
+		{
+			// color referenced by X11 color name
+			input:     "r c red",
+			wantID:    "r",
+			wantColor: color.NRGBA{R: 0xff, G: 0x0, B: 0x0, A: 0xff},
+		},
+		{
+			// a multi-word color name
+			input:     "g c dark slate grey",
+			wantID:    "g",
+			wantColor: color.NRGBA{R: 47, G: 79, B: 79, A: 0xff},
+		},
+		{
+			// "c" visual is not the first
+			input:     "r g gray g4 #888888 c red m black",
+			wantID:    "r",
+			wantColor: color.NRGBA{R: 0xff, G: 0x0, B: 0x0, A: 0xff},
+		},
+		{
+			// "c" visual is not the first, some colors have multiple words
+			input:     "g g dark slate gray c pale green m black",
+			wantID:    "g", // special case, id is spaces
+			wantColor: color.NRGBA{R: 152, G: 251, B: 152, A: 0xff},
+		},
+	} {
+		id, c, err := parseColor(tt.input, 1)
+		assert.Nil(t, err, "parseColor(%q, 1): error: %v", tt.input, err)
+		assert.Equal(t, tt.wantID, id, "parseColor(%q, 1): id %q, want %q", tt.input, id, tt.wantID)
+		assert.Equal(t, tt.wantColor, c, "parseColor(%q, 1): color %v, want %v", tt.input, c, tt.wantColor)
+	}
 }
 
 func TestParseDimensions(t *testing.T) {
@@ -60,15 +103,35 @@ func TestParseDimensions(t *testing.T) {
 }
 
 func TestStringToColor(t *testing.T) {
-	c, err := stringToColor("None")
-	assert.Nil(t, err)
-	assert.Equal(t, color.Transparent, c)
-	c, err = stringToColor("#000000")
-	assert.Nil(t, err)
-	assert.Equal(t, &color.NRGBA{A: 0xff}, c)
-	c, err = stringToColor("#ffffff")
-	assert.Nil(t, err)
-	assert.Equal(t, &color.NRGBA{0xff, 0xff, 0xff, 0xff}, c)
+	for _, tt := range []struct {
+		input string
+		want  color.Color
+	}{
+		{
+			input: "None",
+			want:  color.Transparent,
+		},
+		{
+			input: "#000000",
+			want:  color.NRGBA{A: 0xff},
+		},
+		{
+			input: "#ffffff",
+			want:  color.NRGBA{0xff, 0xff, 0xff, 0xff},
+		},
+		{
+			input: "#fff",
+			want:  color.NRGBA{0xf0, 0xf0, 0xf0, 0xff},
+		},
+		{
+			input: "red",
+			want:  color.NRGBA{0xff, 0x00, 0x00, 0xff},
+		},
+	} {
+		c, err := stringToColor(tt.input)
+		assert.Nil(t, err)
+		assert.Equal(t, tt.want, c, "stringToColor(%q) = %+v, want %+v", tt.input, c, tt.want)
+	}
 }
 
 func TestStripQuotes(t *testing.T) {

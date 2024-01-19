@@ -11,6 +11,7 @@ import (
 )
 
 func parseXPM(data io.Reader) (image.Image, error) {
+	// Specification: https://www.xfree86.org/current/xpm.pdf
 	var colCount, charSize int
 	colors := make(map[string]color.Color)
 	var img *image.NRGBA
@@ -50,20 +51,47 @@ func parseXPM(data io.Reader) (image.Image, error) {
 }
 
 func parseColor(data string, charSize int) (id string, c color.Color, err error) {
-	if len(data) == 0 {
-		return
-	}
-	parts := strings.Fields(data)
-	if len(parts) == 2 && parts[0] == "c" {
-		parts = []string{" ", "c", parts[1]}
-	} else if len(parts) != 3 {
-		return
-	} else if parts[1] != "c" {
+	// TODO: parseColor should return a non-nil err in all error cases,
+	// instead of just returning and implicitly leaving err as nil.
+	if len(data) < charSize {
 		return
 	}
 
-	color, err := stringToColor(parts[2])
-	return data[:charSize], color, err
+	id = data[:charSize]
+	parts := strings.Fields(data[charSize:])
+	for len(parts) >= 2 {
+		key := parts[0]
+		parts = parts[1:]
+
+		nki := nextKeyIndex(parts)
+		color := strings.Join(parts[:nki], " ")
+		parts = parts[nki:]
+
+		switch key {
+		case "c":
+			c, err := stringToColor(color)
+			return id, c, err
+		case "m", "s", "g4", "g":
+			// We don't support mono, symbolic, and
+			// grayscale visuals.
+			continue
+		default:
+			return "", nil, fmt.Errorf("unknown visual %q", key)
+		}
+	}
+	return
+}
+
+// nextKeyIndex returns the index of the next "c", "m", s", "g4", or
+// "g", or otherwise len(parts).
+func nextKeyIndex(parts []string) int {
+	for i, p := range parts {
+		switch p {
+		case "c", "m", "s", "g4", "g":
+			return i
+		}
+	}
+	return len(parts)
 }
 
 func parseDimensions(data string) (w, h, i, j int, err error) {
@@ -116,13 +144,31 @@ func stringToColor(data string) (color.Color, error) {
 		return color.Transparent, nil
 	}
 
-	if data[0] != '#' {
-		return color.Transparent, nil // unsupported string like colour name
+	switch data[0] {
+	case '#':
+		var (
+			r, g, b uint8
+			err     error
+		)
+		switch len(data) {
+		case 7:
+			_, err = fmt.Sscanf(data, "#%02x%02x%02x", &r, &g, &b)
+		case 4:
+			_, err = fmt.Sscanf(data, "#%01x%01x%01x", &r, &g, &b)
+			// In X11 color specs, #fff == #f0f0f0
+			// See https://gitlab.freedesktop.org/xorg/lib/libxpm/-/issues/7
+			r, g, b = 0x10*r, 0x10*g, 0x10*b
+		default:
+			return nil, fmt.Errorf("invalid hex color %q", data)
+		}
+		return color.NRGBA{r, g, b, 0xff}, err
+	default:
+		c, ok := x11colors[data]
+		if !ok {
+			return nil, fmt.Errorf("invalid X11 color %q", data)
+		}
+		return c, nil
 	}
-
-	c := &color.NRGBA{A: 0xff}
-	_, err := fmt.Sscanf(data, "#%02x%02x%02x", &c.R, &c.G, &c.B)
-	return c, err
 }
 
 func stripQuotes(data string) string {
