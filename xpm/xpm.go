@@ -2,6 +2,7 @@ package xpm
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"image"
 	"image/color"
@@ -15,6 +16,9 @@ import (
 // pixmaps tend to be small, it should not be possible to run into
 // this limit with real-life data.
 const maxPixels = 1024 * 1024 * 1024
+
+// ErrInvalidFormat indicates that the input image was malformatted.
+var ErrInvalidFormat = errors.New("invalid format")
 
 func parseXPM(data io.Reader) (image.Image, error) {
 	// Specification: https://www.xfree86.org/current/xpm.pdf
@@ -61,7 +65,7 @@ func parseXPM(data io.Reader) (image.Image, error) {
 
 func parseColor(data string, charSize int) (id string, c color.Color, err error) {
 	if len(data) < charSize {
-		return "", nil, fmt.Errorf("invalid format: missing color specification")
+		return "", nil, fmt.Errorf("%w: missing color specification", ErrInvalidFormat)
 	}
 
 	id = data[:charSize]
@@ -75,7 +79,7 @@ func parseColor(data string, charSize int) (id string, c color.Color, err error)
 		parts = parts[nki:]
 
 		if color == "" {
-			return "", nil, fmt.Errorf("invalid format: missing color specification")
+			return "", nil, fmt.Errorf("%w: missing color specification", ErrInvalidFormat)
 		}
 
 		switch key {
@@ -90,7 +94,7 @@ func parseColor(data string, charSize int) (id string, c color.Color, err error)
 			return "", nil, fmt.Errorf("unknown visual %q", key)
 		}
 	}
-	return "", nil, fmt.Errorf("invalid format: missing color specification")
+	return "", nil, fmt.Errorf("%w: missing color specification", ErrInvalidFormat)
 }
 
 // nextKeyIndex returns the index of the next "c", "m", s", "g4", or
@@ -123,11 +127,11 @@ func parseDimensions(data string) (w, h, ncolors, cpp int, err error) {
 		return
 	}
 	if w*h <= 0 {
-		err = fmt.Errorf("invalid format: empty or negative-sized image (%v x %v)", w, h)
+		err = fmt.Errorf("%w: empty or negative-sized image (%v x %v)", ErrInvalidFormat, w, h)
 		return
 	}
 	if w*h >= maxPixels {
-		err = fmt.Errorf("invalid format: too many pixels (%v x %v), want < %v", w, h, maxPixels)
+		err = fmt.Errorf("%w: too many pixels (%v x %v), want < %v", ErrInvalidFormat, w, h, maxPixels)
 		return
 	}
 	ncolors, err = strconv.Atoi(parts[2])
@@ -135,7 +139,7 @@ func parseDimensions(data string) (w, h, ncolors, cpp int, err error) {
 		return
 	}
 	if ncolors <= 0 {
-		err = fmt.Errorf("invalid format: ncolors <= 0: missing color palette")
+		err = fmt.Errorf("%w: ncolors <= 0: missing color palette", ErrInvalidFormat)
 		return
 	}
 	cpp, err = strconv.Atoi(parts[3])
@@ -143,7 +147,7 @@ func parseDimensions(data string) (w, h, ncolors, cpp int, err error) {
 		return
 	}
 	if cpp <= 0 {
-		err = fmt.Errorf("invalid format: characters per pixel <= 0")
+		err = fmt.Errorf("%w: characters per pixel <= 0", ErrInvalidFormat)
 		return
 	}
 	return
@@ -151,11 +155,11 @@ func parseDimensions(data string) (w, h, ncolors, cpp int, err error) {
 
 func parsePixels(row string, charSize int, pixRow int, colors map[string]color.Color, img *image.NRGBA) error {
 	if len(row) < charSize*(img.Stride/4) {
-		return fmt.Errorf("invalid format: missing pixel data")
+		return fmt.Errorf("%w: missing pixel data", ErrInvalidFormat)
 	}
 	off := pixRow * img.Stride
 	if len(img.Pix) < off+img.Stride {
-		return fmt.Errorf("invalid format: too much pixel data")
+		return fmt.Errorf("%w: too much pixel data", ErrInvalidFormat)
 	}
 	chPos := 0
 	for i := 0; i < img.Stride/4; i++ {
@@ -196,13 +200,13 @@ func stringToColor(data string) (color.Color, error) {
 			// See https://gitlab.freedesktop.org/xorg/lib/libxpm/-/issues/7
 			r, g, b = 0x10*r, 0x10*g, 0x10*b
 		default:
-			return nil, fmt.Errorf("invalid hex color %q", data)
+			return nil, fmt.Errorf("%w: invalid hex color %q", ErrInvalidFormat, data)
 		}
 		return color.NRGBA{r, g, b, 0xff}, err
 	default:
 		c, ok := x11colors[data]
 		if !ok {
-			return nil, fmt.Errorf("invalid X11 color %q", data)
+			return nil, fmt.Errorf("%w: invalid X11 color %q", ErrInvalidFormat, data)
 		}
 		return c, nil
 	}
