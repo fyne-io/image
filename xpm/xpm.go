@@ -2,6 +2,7 @@ package xpm
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"image"
 	"image/color"
@@ -9,6 +10,15 @@ import (
 	"strconv"
 	"strings"
 )
+
+// maxPixels is the maximum number of pixels that the parser supports,
+// to protect against prohibitively large memory allocations.  XPM
+// pixmaps tend to be small, it should not be possible to run into
+// this limit with real-life data.
+const maxPixels = 1024 * 1024 * 1024
+
+// ErrInvalidFormat indicates that the input image was malformatted.
+var ErrInvalidFormat = errors.New("invalid format")
 
 func parseXPM(data io.Reader) (image.Image, error) {
 	// Specification: https://www.xfree86.org/current/xpm.pdf
@@ -43,7 +53,10 @@ func parseXPM(data io.Reader) (image.Image, error) {
 				colors[id] = c
 			}
 		} else {
-			parsePixels(row, charSize, rowNum-colCount-1, colors, img)
+			err := parsePixels(row, charSize, rowNum-colCount-1, colors, img)
+			if err != nil {
+				return nil, err
+			}
 		}
 		rowNum++
 	}
@@ -51,10 +64,8 @@ func parseXPM(data io.Reader) (image.Image, error) {
 }
 
 func parseColor(data string, charSize int) (id string, c color.Color, err error) {
-	// TODO: parseColor should return a non-nil err in all error cases,
-	// instead of just returning and implicitly leaving err as nil.
 	if len(data) < charSize {
-		return
+		return "", nil, fmt.Errorf("%w: missing color specification", ErrInvalidFormat)
 	}
 
 	id = data[:charSize]
@@ -66,6 +77,10 @@ func parseColor(data string, charSize int) (id string, c color.Color, err error)
 		nki := nextKeyIndex(parts)
 		color := strings.Join(parts[:nki], " ")
 		parts = parts[nki:]
+
+		if color == "" {
+			return "", nil, fmt.Errorf("%w: missing color specification", ErrInvalidFormat)
+		}
 
 		switch key {
 		case "c":
@@ -79,7 +94,7 @@ func parseColor(data string, charSize int) (id string, c color.Color, err error)
 			return "", nil, fmt.Errorf("unknown visual %q", key)
 		}
 	}
-	return
+	return "", nil, fmt.Errorf("%w: missing color specification", ErrInvalidFormat)
 }
 
 // nextKeyIndex returns the index of the next "c", "m", s", "g4", or
@@ -94,7 +109,7 @@ func nextKeyIndex(parts []string) int {
 	return len(parts)
 }
 
-func parseDimensions(data string) (w, h, i, j int, err error) {
+func parseDimensions(data string) (w, h, ncolors, cpp int, err error) {
 	if len(data) == 0 {
 		return
 	}
@@ -111,16 +126,41 @@ func parseDimensions(data string) (w, h, i, j int, err error) {
 	if err != nil {
 		return
 	}
-	i, err = strconv.Atoi(parts[2])
+	if w*h <= 0 {
+		err = fmt.Errorf("%w: empty or negative-sized image (%v x %v)", ErrInvalidFormat, w, h)
+		return
+	}
+	if w*h >= maxPixels {
+		err = fmt.Errorf("%w: too many pixels (%v x %v), want < %v", ErrInvalidFormat, w, h, maxPixels)
+		return
+	}
+	ncolors, err = strconv.Atoi(parts[2])
 	if err != nil {
 		return
 	}
-	j, err = strconv.Atoi(parts[3])
+	if ncolors <= 0 {
+		err = fmt.Errorf("%w: ncolors <= 0: missing color palette", ErrInvalidFormat)
+		return
+	}
+	cpp, err = strconv.Atoi(parts[3])
+	if err != nil {
+		return
+	}
+	if cpp <= 0 {
+		err = fmt.Errorf("%w: characters per pixel <= 0", ErrInvalidFormat)
+		return
+	}
 	return
 }
 
-func parsePixels(row string, charSize int, pixRow int, colors map[string]color.Color, img *image.NRGBA) {
+func parsePixels(row string, charSize int, pixRow int, colors map[string]color.Color, img *image.NRGBA) error {
+	if len(row) < charSize*(img.Stride/4) {
+		return fmt.Errorf("%w: missing pixel data", ErrInvalidFormat)
+	}
 	off := pixRow * img.Stride
+	if len(img.Pix) < off+img.Stride {
+		return fmt.Errorf("%w: too much pixel data", ErrInvalidFormat)
+	}
 	chPos := 0
 	for i := 0; i < img.Stride/4; i++ {
 		id := row[chPos : chPos+charSize]
@@ -137,6 +177,7 @@ func parsePixels(row string, charSize int, pixRow int, colors map[string]color.C
 		img.Pix[pos+3] = uint8(a)
 		chPos += charSize
 	}
+	return nil
 }
 
 func stringToColor(data string) (color.Color, error) {
@@ -159,13 +200,13 @@ func stringToColor(data string) (color.Color, error) {
 			// See https://gitlab.freedesktop.org/xorg/lib/libxpm/-/issues/7
 			r, g, b = 0x10*r, 0x10*g, 0x10*b
 		default:
-			return nil, fmt.Errorf("invalid hex color %q", data)
+			return nil, fmt.Errorf("%w: invalid hex color %q", ErrInvalidFormat, data)
 		}
 		return color.NRGBA{r, g, b, 0xff}, err
 	default:
 		c, ok := x11colors[data]
 		if !ok {
-			return nil, fmt.Errorf("invalid X11 color %q", data)
+			return nil, fmt.Errorf("%w: invalid X11 color %q", ErrInvalidFormat, data)
 		}
 		return c, nil
 	}
