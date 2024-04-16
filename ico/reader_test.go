@@ -51,3 +51,13 @@ func TestDecodeAll(t *testing.T) {
 		}
 	}
 }
+
+func TestDecodeHighestRes(t *testing.T) {
+	expectedWidth := 32
+	rd, err := os.Open("testdata/multi.ico")
+	assert.NoError(t, err)
+	defer rd.Close()
+	image, err := ico.Decode(rd)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedWidth, image.Bounds().Dx())
+}

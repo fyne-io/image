@@ -25,7 +25,14 @@ func Decode(r io.Reader) (image.Image, error) {
 	if err := d.decode(r); err != nil {
 		return nil, err
 	}
-	return d.images[0], nil
+	img := d.images[0]
+	// return the image with the highest resolution, if any
+	for i := 1; i < len(d.images); i++ {
+		if d.images[i].Bounds().Dx() > img.Bounds().Dx() {
+			img = d.images[i]
+		}
+	}
+	return img, nil
 }
 
 func DecodeAll(r io.Reader) ([]image.Image, error) {
