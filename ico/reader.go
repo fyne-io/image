@@ -14,11 +14,11 @@ import (
 	bmp "github.com/jsummers/gobmp"
 )
 
+var pngHeader = []byte{'\x89', 'P', 'N', 'G', '\r', '\n', '\x1a', '\n'}
+
 func init() {
 	image.RegisterFormat("ico", "\x00\x00\x01\x00?????\x00", Decode, DecodeConfig)
 }
-
-// ---- public ----
 
 func Decode(r io.Reader) (image.Image, error) {
 	var d decoder
@@ -69,8 +69,6 @@ func DecodeConfig(r io.Reader) (image.Config, error) {
 	d.forgeBMPHead(buf, &e)
 	return bmp.DecodeConfig(bytes.NewReader(buf))
 }
-
-// ---- private ----
 
 type direntry struct {
 	Width   byte
@@ -223,5 +221,3 @@ func (d *decoder) forgeBMPHead(buf []byte, e *direntry) (mask []byte) {
 	binary.LittleEndian.PutUint32(buf[10:14], offset)
 	return
 }
-
-var pngHeader = []byte{'\x89', 'P', 'N', 'G', '\r', '\n', '\x1a', '\n'}
