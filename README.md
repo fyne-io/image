@@ -1,3 +1,6 @@
+[![Tests](https://github.com/fyne-io/image/actions/workflows/tests.yml/badge.svg)](https://github.com/fyne-io/glfw-js/actions/workflows/tests.yml)
+[![Static Analysis](https://github.com/fyne-io/image/actions/workflows/analysis.yml/badge.svg)](https://github.com/fyne-io/glfw-js/actions/workflows/analysis.yml)
+
 # image
 
 Collection of image codecs useful in GUI apps.
