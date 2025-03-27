@@ -63,6 +63,18 @@ func parseXPM(data io.Reader) (image.Image, error) {
 	return img, scan.Err()
 }
 
+func parseXPMConfig(data io.Reader) (image.Config, error) {
+	p, err := parseXPM(data)
+	if err != nil {
+		return image.Config{}, err
+	}
+	
+	return image.Config{
+		Width: p.Bounds().Dx(),
+		Height: p.Bounds().Dy(),
+	}, nil
+}
+
 func parseColor(data string, charSize int) (id string, c color.Color, err error) {
 	if len(data) < charSize {
 		return "", nil, fmt.Errorf("%w: missing color specification", ErrInvalidFormat)
